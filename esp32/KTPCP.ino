@@ -4,10 +4,12 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+//#include <esp_wifi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
 #include <FreeRTOS.h>
- 
+#include <sys/time.h>
+
 //Wi-Fi 設定の読み込み
 #include "KTPCP_config.h"
 
@@ -45,6 +47,7 @@ void connectToWiFi() {
   Serial.print("Connecting to ");
   Serial.println(SSID);
   
+  //esp_wifi_set_ps(WIFI_PS_NONE);
   WiFi.begin(SSID, PWD);
   
   while (WiFi.status() != WL_CONNECTED) {
@@ -57,7 +60,7 @@ void connectToWiFi() {
 }
 
 void setup_routing() {
-  server.on("/gpio", HTTP_POST, handlePost);
+  server.on("/", HTTP_POST, handlePost);
   
   //サーバー開始
   server.begin();
@@ -76,6 +79,7 @@ void control_hardware(void * Parameters) {
         }
       }
     }
+    delay(1);
   }
 }
 
@@ -98,6 +102,25 @@ void handlePost() {
   Serial.print("\t");
   Serial.print(state);
   Serial.print("\n");
+  
+  //手動時刻設定
+  if (opPin == -1) {
+    time_t t, t_;
+    struct timeval tv;
+    tv.tv_sec = receivedJson["state"].as<time_t>();
+    tv.tv_usec = 0;
+    settimeofday(&tv, NULL);
+    Serial.println(tv.tv_sec);
+    t = time(NULL);
+    t_ = mktime(localtime(&t));
+    Serial.print("Set new date and time:");
+    Serial.println(t_);
+    sendJson["status"] = "OK";
+    sendJson["last_update"] = t_;
+    serializeJson(sendJson, buffer);
+    server.send(200, "application/json", buffer);
+    return;
+  }
   
   if ((opPin < 0) || (opPin >= GPIO_MAX) || (GPIO_TYPE[opPin] == GPIO_NO_USE)) {
     sendJson["error"] = "invalid GPIO pin";
@@ -158,25 +181,26 @@ void setup() {
   }
   //仮設定終わり
   
-  Serial.begin(9600);
+  Serial.begin(115200);
   
   connectToWiFi();
+  
   configTime( JST, 0, "ntp.nict.jp", "ntp.jst.mfeed.ad.jp");
-  for (;;) {
-    //現在時刻が2000年1月1日より後になるまで待つ
-    t = time(NULL);
-    t_ = mktime(localtime(&t));
-    if (t_ > 946652400) {
-      Serial.print("Set new date and time:");
-      Serial.println(t_);
-      break;
-    }
-    delay(500);
+  //現在時刻が2000年1月1日より後であれば、正しい時刻とする
+  t = time(NULL);
+  t_ = mktime(localtime(&t));
+  if (t_ > 946652400) {
+    Serial.print("Set new date and time:");
+    Serial.println(t_);
+  } else {
+    Serial.println("Warning: Could not connect NTP server.");
   }
+  
   setup_task();
   setup_routing();
 }
 
 void loop() {
   server.handleClient();
+  delay(1);
 }
