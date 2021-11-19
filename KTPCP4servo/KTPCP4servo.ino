@@ -195,8 +195,11 @@ void setup() {
   GPIO_AVAILABLE[14] = 33;
   GPIO_AVAILABLE[15] = 15;
   
+  Serial.begin(115200);
+  
   for (int i = 0; i < 16; i++) {
     int gpio_it = GPIO_AVAILABLE[i];
+    Serial.println(gpio_it);
     GPIO_TYPE[gpio_it] = GPIO_MOTOR;
     GPIO_SERVO[gpio_it].setPeriodHertz(50);
     GPIO_SERVO[gpio_it].attach(gpio_it, 500, 2400);
@@ -206,8 +209,6 @@ void setup() {
     int gpio_it = GPIO_AVAILABLE[i];
     GPIO_MOTOR_ANGLE[gpio_it] = 80;
   }
-  
-  Serial.begin(115200);
   
   connectToWiFi();
   
