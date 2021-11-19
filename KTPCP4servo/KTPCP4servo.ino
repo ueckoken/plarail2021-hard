@@ -1,7 +1,5 @@
 //KTPCP (Koken Tekken Plarail Control(Common) Platform)
 
-//TODO: ホールセンサの値が変わった時に割り込み処理をし、値を取得する関数を作成する
-
 #include <Arduino.h>
 #include <WiFi.h>
 //#include <esp_wifi.h>
@@ -35,6 +33,10 @@ int GPIO_TYPE[GPIO_MAX];
 #define GPIO_HALL   1
 #define GPIO_MOTOR  2
 int GPIO_STATE[GPIO_MAX] = {0};
+
+//使用可能GPIOピン設定
+int GPIO_AVAILABLE[16] = {};
+
 //サーボモータ用
 int GPIO_MOTOR_ANGLE[GPIO_MAX];
 Servo GPIO_SERVO[GPIO_MAX];
@@ -59,6 +61,7 @@ void connectToWiFi() {
 
 void setup_routing() {
   server.on("/", HTTP_POST, handlePost);
+  server.on("/health", HTTP_POST, handlePing);
   
   //サーバー開始
   server.begin();
@@ -113,7 +116,7 @@ void handlePost() {
   if ((opPin < 0) || (opPin >= GPIO_MAX) || (GPIO_TYPE[opPin] == GPIO_NO_USE)) {
     sendJson["error"] = "invalid GPIO pin";
     serializeJson(sendJson, buffer);
-    server.send(400, "application/json", buffer);
+    server.send(404, "application/json", buffer);
     return;
   }
   
@@ -130,6 +133,8 @@ void handlePost() {
     } else if (state == "OFF") {
       GPIO_STATE[opPin] = 0;
       GPIO_SERVO[opPin].write(0);
+    } else if (state == "ANGLE") {
+      GPIO_SERVO[opPin].write(receivedJson["angle"]);
     } else {
       sendJson["error"] = "invalid operation";
       serializeJson(sendJson, buffer);
@@ -153,6 +158,13 @@ void handlePost() {
   server.send(404, "application/json", buffer);
 }
 
+void handlePing() {
+  sendJson.clear();
+  sendJson["status"] = "OK";
+  serializeJson(sendJson, buffer);
+  server.send(404, "application/json", buffer);
+}
+
 void setup_task() {
   xTaskCreate(
     control_hardware,
@@ -165,22 +177,38 @@ void setup_task() {
 }
 
 void setup() {
-  //仮設定
-  for (int i = 0; i < 12; i++) {
-    GPIO_TYPE[i] = GPIO_HALL;
-  }
-  for (int i = 12; i < GPIO_MAX; i++) {
-    GPIO_TYPE[i] = GPIO_MOTOR;
-    GPIO_SERVO[i].setPeriodHertz(50);
-    GPIO_SERVO[i].attach(i, 500, 2400);
-  }
-  //仮設定終わり
-  
-  for (int i = 0; i < GPIO_MAX; i++) {
-    GPIO_MOTOR_ANGLE[i] = 80;
-  }
+  //使用可能GPIOピン列挙
+  GPIO_AVAILABLE[0] = 4;
+  GPIO_AVAILABLE[1] = 13;
+  GPIO_AVAILABLE[2] = 14;
+  GPIO_AVAILABLE[3] = 16;
+  GPIO_AVAILABLE[4] = 17;
+  GPIO_AVAILABLE[5] = 18;
+  GPIO_AVAILABLE[6] = 19;
+  GPIO_AVAILABLE[7] = 21;
+  GPIO_AVAILABLE[8] = 22;
+  GPIO_AVAILABLE[9] = 23;
+  GPIO_AVAILABLE[10] = 25;
+  GPIO_AVAILABLE[11] = 26;
+  GPIO_AVAILABLE[12] = 27;
+  GPIO_AVAILABLE[13] = 32;
+  GPIO_AVAILABLE[14] = 33;
+  GPIO_AVAILABLE[15] = 15;
   
   Serial.begin(115200);
+  
+  for (int i = 0; i < 16; i++) {
+    int gpio_it = GPIO_AVAILABLE[i];
+    Serial.println(gpio_it);
+    GPIO_TYPE[gpio_it] = GPIO_MOTOR;
+    GPIO_SERVO[gpio_it].setPeriodHertz(50);
+    GPIO_SERVO[gpio_it].attach(gpio_it, 500, 2400);
+  }
+  
+  for (int i = 0; i < 16; i++) {
+    int gpio_it = GPIO_AVAILABLE[i];
+    GPIO_MOTOR_ANGLE[gpio_it] = 80;
+  }
   
   connectToWiFi();
   
