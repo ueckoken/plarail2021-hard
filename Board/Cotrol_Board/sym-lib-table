@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name bd6231f)(type Legacy)(uri C:/Users/sjany/Documents/KiCAD_Circuits/Library/ul_BD6231F-E2/KiCAD/2021-11-07_06-14-50/2021-11-07_06-14-50.lib)(options "")(descr ""))
+  (lib (name raspberry_pi_zero_hat)(type Legacy)(uri C:/Users/sjany/Documents/KiCAD_Circuits/RPi_Zero_pHat_Template-master/symbols/Connector-ML.lib)(options "")(descr ""))
+)

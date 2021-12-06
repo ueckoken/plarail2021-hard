@@ -1,0 +1,4 @@
+(fp_lib_table
+  (lib (name bd6231f)(type KiCad)(uri C:/Users/sjany/Documents/KiCAD_Circuits/Library/ul_BD6231F-E2/KiCAD/2021-11-07_06-14-50/footprints.pretty)(options "")(descr ""))
+  (lib (name raspberry_pi_zero_hat)(type KiCad)(uri C:/Users/sjany/Documents/KiCAD_Circuits/RPi_Zero_pHat_Template-master/footprints/Connector_Samtec_HLE_SMD-ML.pretty)(options "")(descr ""))
+)
